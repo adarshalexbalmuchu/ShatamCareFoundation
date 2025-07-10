@@ -1,0 +1,8 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#f3f4f6"/>
+  <g fill="#9ca3af" text-anchor="middle" font-family="Arial, sans-serif">
+    <text x="200" y="140" font-size="16" fill="#6b7280">Image Loading...</text>
+    <circle cx="200" cy="170" r="15" fill="#d1d5db"/>
+    <path d="M190 170l8 8 16-16" stroke="#6b7280" stroke-width="2" fill="none"/>
+  </g>
+</svg>

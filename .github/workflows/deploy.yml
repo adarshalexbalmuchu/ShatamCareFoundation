@@ -1,0 +1,216 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  # Allow manual triggering
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        # Full history for better versioning
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Type check
+      run: npm run typecheck || exit 1
+    
+    - name: Clean any previous builds
+      run: |
+        rm -rf dist
+        rm -rf node_modules/.cache/gh-pages
+
+    - name: Build
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'placeholder-key' }}
+      run: |
+        # Build with proper base URL
+        VITE_BASE_URL="/ShatamCareFoundation/" npm run build
+        
+        # Create .nojekyll to bypass Jekyll processing
+        touch dist/.nojekyll
+        
+        # Create .mime.types file for proper MIME types
+        echo '{ "*.js": "application/javascript", "*.mjs": "application/javascript", "*.ts": "application/javascript", "*.tsx": "application/javascript" }' > dist/.mime.types
+        
+        # Copy 404.html for SPA routing
+        cp dist/index.html dist/404.html
+        
+        # Update all asset paths in HTML files
+        for file in dist/*.html; do
+          sed -i 's|src="/|src="/ShatamCareFoundation/|g' "$file"
+          sed -i 's|href="/|href="/ShatamCareFoundation/|g' "$file"
+          sed -i 's|from "/|from "/ShatamCareFoundation/|g' "$file"
+          sed -i 's|url(/|url(/ShatamCareFoundation/|g' "$file"
+        done
+        
+        # Verify build artifacts
+        echo "Checking build output..."
+        ls -la dist/
+        echo "Checking asset directories..."
+        ls -la dist/assets/ || echo "No assets directory found"
+        cp -n public/* dist/ 2>/dev/null || true
+        
+        # Create 404.html for SPA routing
+        cp dist/index.html dist/404.html
+        
+        # Ensure base path is correct in both index.html and 404.html
+        for file in dist/index.html dist/404.html; do
+          # Replace absolute paths with relative paths
+          sed -i 's|href="/|href="./|g' "$file"
+          sed -i 's|src="/|src="./|g' "$file"
+          # Fix paths for assets
+          sed -i 's|"./assets/|"./assets/|g' "$file"
+          sed -i 's|"./images/|"./images/|g' "$file"
+          sed -i 's|"./_app/|"./_app/|g' "$file"
+          # Fix main entry point
+          sed -i 's|"/src/main.tsx"|"./src/main.tsx"|g' "$file"
+        done
+        
+        # Verify favicon files exist in dist
+        if [ ! -f "dist/favicon.ico" ]; then
+          echo "Copying favicon.ico from public"
+          cp -f public/favicon.ico dist/ 2>/dev/null || echo "No favicon.ico found"
+        fi
+        if [ ! -f "dist/favicon.svg" ]; then
+          echo "Copying favicon.svg from public"
+          cp -f public/favicon.svg dist/ 2>/dev/null || echo "No favicon.svg found"
+        fi
+
+    - name: Verify build output
+      run: |
+        echo "Verifying build output structure..."
+        ls -la dist/
+        
+        echo "Checking build output integrity..."
+        # Check for required files
+        for file in index.html 404.html .nojekyll; do
+          if [ -f "dist/$file" ]; then
+            echo "✅ Found $file"
+          else
+            echo "❌ Missing $file"
+            exit 1
+          fi
+        done
+        
+        # Check for assets directory
+        if [ -d "dist/assets" ]; then
+          echo "✅ Assets directory exists"
+        else
+          echo "❌ Missing assets directory"
+          exit 1
+        fi
+        
+        # Verify base path in HTML files
+        echo "Checking base paths in HTML files..."
+        for file in dist/*.html; do
+          if grep -q '"/ShatamCareFoundation/' "$file"; then
+            echo "✅ Base path correctly set in $(basename "$file")"
+          else
+            echo "⚠️ Base path might be missing in $(basename "$file")"
+          fi
+        done
+        
+        # Make sure no source files are included
+        if [ -d "dist/src" ]; then
+          echo "❌ Source files found in dist/src! Removing..."
+          rm -rf dist/src
+        else
+          echo "✅ No source files in dist/"
+        fi
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './dist'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+      
+      - name: Verify deployment
+        run: |
+          echo "⏳ Waiting for GitHub Pages deployment to propagate (45 seconds)..."
+          sleep 45
+          
+          echo "🔍 Verifying deployment..."
+          SITE_URL="${{ steps.deployment.outputs.page_url }}"
+          
+          # Function to check URL with retry
+          check_url() {
+            local url=$1
+            local max_retries=3
+            local retry=0
+            local status
+            
+            while [ $retry -lt $max_retries ]; do
+              status=$(curl -s -o /dev/null -w "%{http_code}" "$url")
+              if [ "$status" -eq 200 ]; then
+                return 0
+              fi
+              echo "Attempt $((retry + 1)) failed (status: $status). Retrying..."
+              retry=$((retry + 1))
+              sleep 10
+            done
+            return 1
+          }
+          
+          # Check main page
+          if check_url "$SITE_URL"; then
+            echo "✅ Main site is accessible!"
+            
+            # Check for source file references
+            RESPONSE=$(curl -s "$SITE_URL")
+            if ! echo "$RESPONSE" | grep -q "src/"; then
+              echo "✅ No unwanted source references found"
+            else
+              echo "⚠️ WARNING: Found source file references"
+            fi
+            
+            # Verify assets are loading
+            if echo "$RESPONSE" | grep -q "/ShatamCareFoundation/assets/"; then
+              echo "✅ Asset paths are correctly prefixed"
+            else
+              echo "⚠️ WARNING: Asset paths might be incorrect"
+            fi
+            
+            # Check SPA routing
+            if check_url "${SITE_URL}our-programs"; then
+              echo "✅ SPA routing is working"
+            else
+              echo "⚠️ SPA routing check failed - verify manually"
+            fi
+          else
+            echo "❌ Site verification failed after multiple attempts"
+            echo "Please check the deployment manually at: $SITE_URL"
+          fi
