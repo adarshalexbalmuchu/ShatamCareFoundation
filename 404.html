@@ -5,24 +5,21 @@
     <title>Shatam Care Foundation</title>
     <script>
         // GitHub Pages SPA redirect
-        // This script takes the current URL and redirects to the index page
-        // with the full path in the query string for client-side routing
-        var pathArray = window.location.pathname.split('/');
-        var basePath = '/ShatamCareFoundation';
-        
-        // Remove the base path from the array if it exists
-        if (pathArray[1] === 'ShatamCareFoundation') {
-            pathArray.splice(1, 1);
-        }
-        
-        // Reconstruct the path
-        var newPath = basePath + '/#' + pathArray.join('/');
-        
-        // Redirect to the new path
-        window.location.replace(newPath);
+        var pathSegmentsToKeep = 1;
+        var l = window.location;
+        l.replace(
+          l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+          l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+          l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          l.hash
+        );
     </script>
 </head>
 <body>
-    <div>Redirecting...</div>
+    <div style="text-align: center; margin-top: 100px; font-family: Arial, sans-serif;">
+        <h2>Redirecting...</h2>
+        <p>If you are not redirected automatically, <a href="/ShatamCareFoundation/">click here</a>.</p>
+    </div>
 </body>
 </html>

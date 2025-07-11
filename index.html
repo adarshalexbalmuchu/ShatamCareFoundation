@@ -73,7 +73,22 @@
       ]
     }
     </script>
-    <script type="module" crossorigin src="/ShatamCareFoundation/assets/index-BS8o0ev5.js"></script>
+    
+    <!-- GitHub Pages SPA Redirect Handler -->
+    <script type="text/javascript">
+      // Handle GitHub Pages SPA redirects
+      (function(l) {
+        if (l.search[1] === '/') {
+          var decoded = l.search.slice(1).split('&').map(function(s) { 
+            return s.replace(/~and~/g, '&')
+          }).join('?');
+          window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location))
+    </script>
+    <script type="module" crossorigin src="/ShatamCareFoundation/assets/index-CYvO0Mrr.js"></script>
     <link rel="modulepreload" crossorigin href="/ShatamCareFoundation/assets/vendor-CuTMNHTd.js">
     <link rel="modulepreload" crossorigin href="/ShatamCareFoundation/assets/ui-Bp18fv9A.js">
     <link rel="stylesheet" crossorigin href="/ShatamCareFoundation/assets/index-DW03MPeV.css">
