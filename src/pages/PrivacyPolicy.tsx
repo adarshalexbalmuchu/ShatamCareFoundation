@@ -1,11 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getSiteSettings, type SiteSettings } from '@/lib/supabase-secure';
 
 const PrivacyPolicy = () => {
   const navigate = useNavigate();
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    
+    const loadSiteSettings = async () => {
+      try {
+        const settings = await getSiteSettings();
+        if (active) setSiteSettings(settings);
+      } catch (error) {
+        console.error('Failed to load site settings:', error);
+      }
+    };
+
+    loadSiteSettings();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -87,10 +108,10 @@ const PrivacyPolicy = () => {
               <p className="mb-4">
                 For questions about this Privacy Policy, please contact us at:{' '}
                 <a 
-                  href="mailto:shatamcare@gmail.com" 
+                  href={`mailto:${siteSettings?.contactEmail || 'shatamcare@gmail.com'}`}
                   className="text-warm-teal hover:text-warm-teal-600 underline"
                 >
-                  shatamcare@gmail.com
+                  {siteSettings?.contactEmail || 'shatamcare@gmail.com'}
                 </a>
               </p>
             </section>

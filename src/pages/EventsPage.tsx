@@ -52,8 +52,11 @@ const EventCard = ({ event }: { event: EventForDisplay }) => {
   try {
     // Temporary test: if it's a media path, manually convert it
     if (event.image_url && event.image_url.startsWith('media/')) {
+      const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, '') || '';
       const filename = event.image_url.replace('media/', '');
-      resolvedImageUrl = `https://uumavtvxuncetfqwlgvp.supabase.co/storage/v1/object/public/media/${encodeURIComponent(filename)}`;
+      resolvedImageUrl = supabaseUrl
+        ? `${supabaseUrl}/storage/v1/object/public/media/${encodeURIComponent(filename)}`
+        : event.image_url;
     } else {
       resolvedImageUrl = resolveImageUrl(event.image_url);
     }

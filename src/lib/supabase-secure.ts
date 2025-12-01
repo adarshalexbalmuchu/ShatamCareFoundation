@@ -1,14 +1,32 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize the Supabase client with environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+let supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+let supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Missing Supabase environment variables. App will run in demo mode.');
-  // Use dummy values to prevent app crash
-  const dummyUrl = 'https://dummy.supabase.co';
-  const dummyKey = 'dummy-key';
+// Hard fallback: if wrong project ref (old) or missing anon key, override with known good values
+const CANONICAL_URL = 'https://uumavtvxuncetfqwlgvp.supabase.co';
+const CANONICAL_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1bWF2dHZ4dW5jZXRmcXdsZ3ZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE3MjM2NTQsImV4cCI6MjA2NzI5OTY1NH0.AAoykuZmtZ3gLtbAXLjlYkyqaVUsghx84CP9nF1xkHU';
+const OLD_REF_REGEX = /zkvzctonbjqfxbpwnuvh/;
+if (!supabaseUrl || OLD_REF_REGEX.test(supabaseUrl)) {
+  supabaseUrl = CANONICAL_URL;
+}
+if (!supabaseAnonKey) {
+  supabaseAnonKey = CANONICAL_ANON;
+}
+
+// Detect placeholder / invalid values early to provide clearer UX
+const isPlaceholderUrl = /<NEW_PROJECT_REF>/i.test(supabaseUrl);
+const isPlaceholderKey = /<NEW_ANON_KEY>/i.test(supabaseAnonKey);
+const isJwtLike = supabaseAnonKey.startsWith('ey'); // Supabase anon keys are JWT-like
+export const isSupabaseConfigured = !!supabaseUrl && !!supabaseAnonKey && !isPlaceholderUrl && !isPlaceholderKey && isJwtLike;
+
+if (!isSupabaseConfigured) {
+  // Give a single consolidated warning with actionable steps
+  console.error('[Supabase Config] Invalid or missing configuration detected.\n' +
+    `VITE_SUPABASE_URL: ${supabaseUrl || 'MISSING'}\n` +
+    `VITE_SUPABASE_ANON_KEY: ${supabaseAnonKey ? (isPlaceholderKey ? 'PLACEHOLDER' : (isJwtLike ? 'PRESENT' : 'INVALID_FORMAT')) : 'MISSING'}\n` +
+    'Update your .env (or deployment environment) with correct values from Supabase Dashboard → Settings → API (use the Project URL and anon public key).');
 }
 
 export const supabase = createClient(
@@ -88,7 +106,6 @@ export interface SiteSettings {
   address: string;
   socialLinks: {
     facebook: string;
-    twitter: string;
     linkedin: string;
     instagram: string;
   };
@@ -427,7 +444,6 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       address: (settingsMap.address as string) || 'Mumbai, Maharashtra, India',
       socialLinks: {
         facebook: (settingsMap.facebook_url as string) || '',
-        twitter: (settingsMap.twitter_url as string) || '',
         linkedin: (settingsMap.linkedin_url as string) || '',
         instagram: (settingsMap.instagram_url as string) || '',
       },
@@ -461,7 +477,6 @@ export async function updateSiteSettings(settings: Partial<SiteSettings>): Promi
     
     if (settings.socialLinks) {
       if (settings.socialLinks.facebook !== undefined) updates.push({ key: 'facebook_url', value: settings.socialLinks.facebook });
-      if (settings.socialLinks.twitter !== undefined) updates.push({ key: 'twitter_url', value: settings.socialLinks.twitter });
       if (settings.socialLinks.linkedin !== undefined) updates.push({ key: 'linkedin_url', value: settings.socialLinks.linkedin });
       if (settings.socialLinks.instagram !== undefined) updates.push({ key: 'instagram_url', value: settings.socialLinks.instagram });
     }

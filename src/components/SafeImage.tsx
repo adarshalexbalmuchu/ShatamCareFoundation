@@ -19,21 +19,16 @@ export function SafeImage({
   className = '',
   ...props 
 }: SafeImageProps) {
+  const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, '') || '';
+  const toSupabaseMediaUrl = (input: string) => {
+    if (!supabaseUrl) return input; // fallback; user must configure env
+    const filename = input.replace('media/', '');
+    return `${supabaseUrl}/storage/v1/object/public/media/${encodeURIComponent(filename)}`;
+  };
+
   const [imgSrc, setImgSrc] = useState(() => {
-    // If src is already a full Supabase URL, use it directly
-    if (src.includes('supabase.co/storage/v1/object/public')) {
-      return src;
-    }
-    
-    // For relative paths like "media/Activity 1.jpg", convert to proper Supabase URL with encoding
-    if (src.startsWith('media/')) {
-      const filename = src.replace('media/', '');
-      // URL encode the filename to handle spaces and special characters
-      const encodedFilename = encodeURIComponent(filename);
-      return `https://uumavtvxuncetfqwlgvp.supabase.co/storage/v1/object/public/media/${encodedFilename}`;
-    }
-    
-    // Otherwise use as-is
+    if (src.includes('supabase.co/storage/v1/object/public')) return src;
+    if (src.startsWith('media/')) return toSupabaseMediaUrl(src);
     return src;
   });
   const [hasError, setHasError] = useState(false);
@@ -41,15 +36,9 @@ export function SafeImage({
   // Reset image state when src changes
   useEffect(() => {
     // Apply the same logic when src changes
-    if (src.includes('supabase.co/storage/v1/object/public')) {
-      setImgSrc(src);
-    } else if (src.startsWith('media/')) {
-      const filename = src.replace('media/', '');
-      const encodedFilename = encodeURIComponent(filename);
-      setImgSrc(`https://uumavtvxuncetfqwlgvp.supabase.co/storage/v1/object/public/media/${encodedFilename}`);
-    } else {
-      setImgSrc(src);
-    }
+  if (src.includes('supabase.co/storage/v1/object/public')) setImgSrc(src);
+  else if (src.startsWith('media/')) setImgSrc(toSupabaseMediaUrl(src));
+  else setImgSrc(src);
     setHasError(false);
   }, [src]);
 

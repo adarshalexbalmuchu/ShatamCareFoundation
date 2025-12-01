@@ -9,7 +9,11 @@
 export const isProduction = (): boolean => {
   // Check multiple ways to detect production
   const isViteProd = import.meta.env.PROD;
-  const isGitHubPages = typeof window !== 'undefined' && window.location.hostname === 'adarshalexbalmuchu.github.io';
+  const isGitHubPages = typeof window !== 'undefined' && (
+    window.location.hostname === 'shatamcare.github.io' || 
+    window.location.hostname === 'adarshalexbalmuchu.github.io' ||
+    window.location.hostname === 'shatamcare.org'
+  );
   const isProductionDomain = typeof window !== 'undefined' && window.location.href.includes('github.io');
   
   return isViteProd || isGitHubPages || isProductionDomain;

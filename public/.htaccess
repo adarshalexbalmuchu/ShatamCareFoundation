@@ -1,0 +1,66 @@
+# Force correct MIME types for ES modules and other assets
+AddType application/javascript .js
+AddType application/javascript .mjs
+AddType text/css .css
+AddType image/svg+xml .svg
+AddType image/x-icon .ico
+AddType image/png .png
+AddType image/jpeg .jpg .jpeg
+AddType image/gif .gif
+
+# Security Headers
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "DENY"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Enable compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# Cache static assets
+<IfModule mod_expires.c>
+    ExpiresActive on
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/x-icon "access plus 1 year"
+</IfModule>
+
+# SPA routing - redirect all requests to index.html except for existing files
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Handle favicon requests specifically
+    RewriteRule ^favicon\.ico$ favicon.ico [L]
+    RewriteRule ^favicon\.svg$ favicon.svg [L]
+
+    # Handle asset files
+    RewriteRule ^assets/ - [L]
+    RewriteRule ^images/ - [L]
+
+    # Handle other static files
+    RewriteRule \.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$ - [L]
+
+    # SPA fallback - redirect everything else to index.html
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.html [L]
+</IfModule>

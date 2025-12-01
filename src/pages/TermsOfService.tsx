@@ -1,11 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getSiteSettings, type SiteSettings } from '@/lib/supabase-secure';
 
 const TermsOfService = () => {
   const navigate = useNavigate();
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    
+    const loadSiteSettings = async () => {
+      try {
+        const settings = await getSiteSettings();
+        if (active) setSiteSettings(settings);
+      } catch (error) {
+        console.error('Failed to load site settings:', error);
+      }
+    };
+
+    loadSiteSettings();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -142,9 +163,9 @@ const TermsOfService = () => {
               </p>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="font-semibold">Shatam Care Foundation</p>
-                <p>Email: shatamcare@gmail.com</p>
-                <p>Phone: +91 9158566665</p>
-                <p>Address: Mumbai, India</p>
+                <p>Email: {siteSettings?.contactEmail || 'shatamcare@gmail.com'}</p>
+                <p>Phone: {siteSettings?.contactPhone || '+91 9158566665'}</p>
+                <p>Address: {siteSettings?.address || 'Mumbai, India'}</p>
               </div>
             </section>
           </div>

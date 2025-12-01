@@ -84,8 +84,12 @@ export const getImagePath = (imagePath: string): string => {
 
     // For GitHub Pages with HashRouter, we need to use the static asset path
     const isProd = isProduction();
-    const isGitHubPagesDirect = typeof window !== 'undefined' && 
-      window.location.hostname === 'adarshalexbalmuchu.github.io';
+    const isGitHubPagesDirect = typeof window !== 'undefined' && (
+      window.location.hostname === 'shatamcare.github.io' || 
+      window.location.hostname === 'adarshalexbalmuchu.github.io'
+    );
+    const isCustomDomain = typeof window !== 'undefined' && 
+      window.location.hostname === 'shatamcare.org';
     
     // Remove leading slash if present to avoid double slashes
     let cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
@@ -93,9 +97,12 @@ export const getImagePath = (imagePath: string): string => {
     // Properly encode the path to handle spaces and special characters
     cleanPath = encodeImagePath(cleanPath);
     
-    // For GitHub Pages production, always use the repository path
-    if (isProd || isGitHubPagesDirect) {
-      // GitHub Pages static assets are served from the repository root
+    // For custom domain, use root path
+    if (isCustomDomain) {
+      return `/${cleanPath}`;
+    }
+    // For GitHub Pages production, use the repository path
+    else if (isProd || isGitHubPagesDirect) {
       return `/ShatamCareFoundation/${cleanPath}`;
     } else {
       // In development, just ensure it starts with /

@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "description": "Official website for Shatam Care Foundation - Dementia care and caregiver training in India",
   "private": true,
-  "homepage": "https://adarshalexbalmuchu.github.io/ShatamCareFoundation/",
+  "homepage": "https://shatamcare.org/",
   "type": "module",
   "scripts": {
     "dev": "vite --port 5174",
     "start": "vite preview --port 5174",
     "build": "tsc && vite build",
+    "build:custom-domain": "export VITE_CUSTOM_DOMAIN=true && tsc && vite build",
+    "build:github-pages": "tsc && vite build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "preview": "vite preview --port 5174"
@@ -25,7 +27,7 @@
   "author": "Shatam Care Foundation <shatamcare@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/adarshalexbalmuchu/ShatamCareFoundation.git"
+    "url": "https://github.com/shatamcare/ShatamCareFoundation.git"
   },
   "bugs": {
     "url": "https://github.com/shatamcare/website/issues",

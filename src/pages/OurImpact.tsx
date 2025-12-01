@@ -232,8 +232,23 @@ const OurImpact = () => {
             <Button size="lg" className="bg-sunrise-orange hover:bg-sunrise-orange/90 text-white px-8 py-3">
               Enroll in Training
             </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-warm-teal px-8 py-3">
-              Donate Now
+            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-warm-teal px-8 py-3"
+              onClick={(e) => {
+                e.preventDefault();
+                if (window.location.pathname !== '/') {
+                  window.location.href = '/#contact';
+                } else {
+                  const el = document.getElementById('contact');
+                  if (el) {
+                    const headerOffset = 80;
+                    const elementPosition = el.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                    window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                  }
+                }
+              }}
+            >
+              Connect With Us
             </Button>
           </div>
         </div>

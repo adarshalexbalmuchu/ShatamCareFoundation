@@ -4,12 +4,13 @@ const ProjectVerifier: React.FC = () => {
   const [info, setInfo] = useState<any>(null);
 
   const checkProject = () => {
+    const fullUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+    const refMatch = fullUrl?.match(/^https?:\/\/([a-z0-9]{20})\.supabase\.co/i);
+    const projectRef = refMatch ? refMatch[1] : 'UNKNOWN';
     const envInfo = {
-      supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+      supabaseUrl: fullUrl,
+      projectRef,
       hasAnonKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
-      expectedProject: 'uumavtvxuncetfqwlgvp',
-      actualProject: import.meta.env.VITE_SUPABASE_URL?.includes('uumavtvxuncetfqwlgvp'),
-      fullUrl: import.meta.env.VITE_SUPABASE_URL
     };
     
     setInfo(envInfo);
@@ -31,25 +32,11 @@ const ProjectVerifier: React.FC = () => {
 
       {info && (
         <div className="mt-3 text-xs space-y-1">
-          <div className={info.actualProject ? 'text-green-700' : 'text-red-700'}>
-            <strong>Project Match:</strong> {info.actualProject ? '✅ CORRECT' : '❌ WRONG PROJECT!'}
-          </div>
-          <div>
-            <strong>Expected:</strong> uumavtvxuncetfqwlgvp
-          </div>
-          <div>
-            <strong>Your URL:</strong> {info.fullUrl || 'MISSING'}
-          </div>
+          <div><strong>Detected Ref:</strong> {info.projectRef}</div>
+          <div><strong>Your URL:</strong> {info.supabaseUrl || 'MISSING'}</div>
           <div>
             <strong>API Key:</strong> {info.hasAnonKey ? '✅ Present' : '❌ Missing'}
           </div>
-          
-          {!info.actualProject && (
-            <div className="bg-red-100 p-2 rounded mt-2">
-              <strong>🚨 ISSUE FOUND:</strong> You're connected to the wrong Supabase project!<br/>
-              <strong>Fix:</strong> Update your .env file with the correct project URL.
-            </div>
-          )}
         </div>
       )}
     </div>

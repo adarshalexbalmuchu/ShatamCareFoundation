@@ -3,10 +3,14 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
   # Allow manual triggering
   workflow_dispatch:
+
+# Top-level permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   build:
@@ -35,6 +39,19 @@ jobs:
         npm install
         echo "✅ Dependencies installed successfully"
 
+    - name: Detect custom domain (CNAME)
+      id: detect_domain
+      run: |
+        if [ -f "CNAME" ]; then
+          echo "Found CNAME file in repository root:" && cat CNAME
+          echo "VITE_CUSTOM_DOMAIN=true" >> $GITHUB_ENV
+          echo "custom_domain=true" >> $GITHUB_OUTPUT
+        else
+          echo "No CNAME file found. Using project page base."
+          echo "VITE_CUSTOM_DOMAIN=false" >> $GITHUB_ENV
+          echo "custom_domain=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Type check
       run: npm run typecheck || exit 1
     
@@ -45,23 +62,37 @@ jobs:
 
     - name: Build
       env:
-        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://uumavtvxuncetfqwlgvp.supabase.co' }}
-        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1bWF2dHZ4dW5jZXRmcXdsZ3ZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE3MjM2NTQsImV4cCI6MjA2NzI5OTY1NH0.AAoykuZmtZ3gLtbAXLjlYkyqaVUsghx84CP9nF1xkHU' }}
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         NODE_ENV: production
+        VITE_CUSTOM_DOMAIN: "${{ steps.detect_domain.outputs.custom_domain }}"
       run: |
         # Build with the correct base URL (Vite config already handles this)
         echo "🏗️ Starting build process..."
+        echo "Building site (VITE_CUSTOM_DOMAIN=${VITE_CUSTOM_DOMAIN:-false})"
         npm run build || { echo "❌ Build failed"; exit 1; }
         echo "✅ Build completed successfully"
         
         # Create .nojekyll to bypass Jekyll processing
         touch dist/.nojekyll
         
-        # Add proper MIME types for GitHub Pages
-        echo "text/javascript" > dist/.mime.types
+        # Copy .htaccess for proper MIME types (Apache servers)
+        cp -f public/.htaccess dist/ 2>/dev/null || echo "No .htaccess found"
+        
+        # Copy _headers for Netlify-style hosting
+        cp -f public/_headers dist/ 2>/dev/null || echo "No _headers found"
+        
+        # Copy web.config for IIS servers
+        cp -f public/web.config dist/ 2>/dev/null || echo "No web.config found"
         
         # Copy 404.html for SPA routing
         cp dist/index.html dist/404.html
+
+        # Include CNAME for custom domain if present
+        if [ -f "CNAME" ]; then
+          cp CNAME dist/
+          echo "✅ CNAME copied to dist/"
+        fi
         
         # Copy public assets to dist (ensure critical files are copied)
         cp -f public/favicon.ico dist/ 2>/dev/null || echo "No favicon.ico found"
@@ -115,15 +146,24 @@ jobs:
           exit 1
         fi
         
-        # Verify base path in HTML files
-        echo "Checking base paths in HTML files..."
-        for file in dist/*.html; do
-          if grep -q '/ShatamCareFoundation/' "$file"; then
-            echo "✅ Base path correctly set in $(basename "$file")"
+        # Verify asset paths in HTML files
+        echo "Checking asset paths in HTML files..."
+        if [ "${{ steps.detect_domain.outputs.custom_domain }}" = "true" ]; then
+          # On custom domain, assets should NOT be prefixed with project path
+          if grep -q '/ShatamCareFoundation/assets/' dist/index.html; then
+            echo "❌ Found project path prefix in assets on custom domain build"
+            exit 1
           else
-            echo "⚠️ Base path might be missing in $(basename "$file")"
+            echo "✅ Asset paths suitable for custom domain"
           fi
-        done
+        else
+          # On project pages, assets should be prefixed
+          if grep -q '/ShatamCareFoundation/assets/' dist/index.html; then
+            echo "✅ Asset paths prefixed for project pages"
+          else
+            echo "⚠️ Asset paths may not be prefixed for project pages"
+          fi
+        fi
         
         # Make sure no source files are included
         if [ -d "dist/src" ]; then
@@ -134,7 +174,7 @@ jobs:
         fi
 
     - name: Setup Pages
-      uses: actions/configure-pages@v5
+      uses: actions/configure-pages@v4
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
@@ -150,6 +190,7 @@ jobs:
     permissions:
       pages: write
       id-token: write
+      contents: read
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
@@ -194,16 +235,16 @@ jobs:
               echo "⚠️ WARNING: Found source file references"
             fi
             
-            # Verify assets are loading
-            if echo "$RESPONSE" | grep -q "/ShatamCareFoundation/assets/"; then
-              echo "✅ Asset paths are correctly prefixed"
+            # Verify assets tag presence
+            if echo "$RESPONSE" | grep -q "/assets/"; then
+              echo "✅ Asset tags present in HTML"
             else
-              echo "⚠️ WARNING: Asset paths might be incorrect"
+              echo "⚠️ WARNING: No asset tags found"
             fi
             
             # Check SPA routing
-            if check_url "${SITE_URL}our-programs"; then
-              echo "✅ SPA routing is working"
+            if check_url "${SITE_URL}#/programs"; then
+              echo "✅ SPA routing (HashRouter) is working"
             else
               echo "⚠️ SPA routing check failed - verify manually"
             fi

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { supabase } from '@/lib/supabase-secure';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase-secure';
 import {
   LogIn,
   Eye,
@@ -31,6 +31,11 @@ const AdminLoginPage: React.FC = () => {
     setError('');
     setSuccessMessage('');
 
+    if (!isSupabaseConfigured) {
+      setError('Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+      setLoading(false);
+      return;
+    }
     try {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
@@ -68,6 +73,11 @@ const AdminLoginPage: React.FC = () => {
     setError('');
     setSuccessMessage('');
 
+    if (!isSupabaseConfigured) {
+      setError('Supabase is not configured. Cannot sign up until environment variables are set.');
+      setLoading(false);
+      return;
+    }
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -153,12 +163,17 @@ const AdminLoginPage: React.FC = () => {
                 </div>
               </div>
 
-              <Button type="submit" disabled={loading || !email || !password} className="w-full">
+              <Button type="submit" disabled={loading || !email || !password || !isSupabaseConfigured} className="w-full">
                 {loading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Sign In')}
               </Button>
             </form>
 
             <div className="mt-6 text-center">
+              {!isSupabaseConfigured && (
+                <p className="text-xs text-red-600 font-medium">
+                  Supabase environment variables missing or placeholder values in this build.
+                </p>
+              )}
               <Button
                 type="button" variant="link"
                 onClick={() => {

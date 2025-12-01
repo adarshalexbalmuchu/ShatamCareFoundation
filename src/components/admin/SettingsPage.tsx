@@ -39,7 +39,6 @@ const SettingsPage: React.FC = () => {
     address: 'Mumbai, Maharashtra, India',
     socialLinks: {
       facebook: '',
-      twitter: '',
       linkedin: '',
       instagram: '',
     },
@@ -65,7 +64,16 @@ const SettingsPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await getSiteSettings();
-      setSettings(data);
+      // Filter out Twitter from loaded data to ensure UI consistency
+      const filteredData = {
+        ...data,
+        socialLinks: {
+          facebook: data.socialLinks.facebook || '',
+          linkedin: data.socialLinks.linkedin || '',
+          instagram: data.socialLinks.instagram || '',
+        }
+      };
+      setSettings(filteredData);
     } catch (error) {
       console.error('Error loading settings:', error);
       setError('Failed to load settings');
@@ -319,14 +327,14 @@ const SettingsPage: React.FC = () => {
               <div>
                 <h3 className="text-md font-medium text-gray-900 mb-4">Social Links</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.entries(settings.socialLinks).map(([platform, url]) => (
+                  {['facebook', 'linkedin', 'instagram'].map((platform) => (
                     <div key={platform}>
                       <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
                         {platform}
                       </label>
                       <input
                         type="url"
-                        value={url as string}
+                        value={settings.socialLinks[platform as keyof typeof settings.socialLinks] || ''}
                         onChange={(e) => setSettings(prev => ({
                           ...prev,
                           socialLinks: { ...prev.socialLinks, [platform]: e.target.value }

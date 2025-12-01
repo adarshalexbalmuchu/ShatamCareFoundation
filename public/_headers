@@ -1,0 +1,40 @@
+/*
+  X-Frame-Options: DENY
+  X-XSS-Protection: 1; mode=block
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/assets/*.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.mjs
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.css
+  Content-Type: text/css; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.js
+  Content-Type: application/javascript; charset=utf-8
+
+/*.mjs
+  Content-Type: application/javascript; charset=utf-8
+
+/*.css
+  Content-Type: text/css; charset=utf-8
+
+/*.svg
+  Content-Type: image/svg+xml
+
+/*.ico
+  Content-Type: image/x-icon
+
+/favicon.ico
+  Content-Type: image/x-icon
+  Cache-Control: public, max-age=86400
+
+/favicon.svg
+  Content-Type: image/svg+xml
+  Cache-Control: public, max-age=86400
